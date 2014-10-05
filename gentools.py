@@ -14,10 +14,12 @@ OPCODE_HAVE_ARGUMENT = opcode.HAVE_ARGUMENT
 def _replace_globals_and_closures(generator, **constants):
     """Replace globals variables and closures inside the generator
     by the values defined in constants."""
+    # NOTE: all vars with the *new_* name prefix are custom versions of
+    # the original attributes of the generator.
     gi_code = generator.gi_code
     new_code = list(gi_code.co_code)
     new_consts = list(gi_code.co_consts)
-    locals = generator.gi_frame.f_locals
+    new_locals = generator.gi_frame.f_locals
     new_freevars = list(gi_code.co_freevars)
 
     i = 0
@@ -67,8 +69,8 @@ def _replace_globals_and_closures(generator, **constants):
                 new_code[i + 2] = pos >> 8
             # !!!: the .co_locals and .co_freevars store the closures names
             # I clear this names because if not the generator can't compile
-            if name in locals:
-                del locals[name]
+            if name in new_locals:
+                del new_locals[name]
                 new_freevars.remove(name)
         i += 1
         if op_code >= OPCODE_HAVE_ARGUMENT:
@@ -106,7 +108,7 @@ def _replace_globals_and_closures(generator, **constants):
         generator.__name__,)
 
     # return the *generator object*
-    return function(**locals)
+    return function(**new_locals)       # CUSTOM: gi_frame.f_locals
 
 
 class Define:
