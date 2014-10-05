@@ -2,9 +2,9 @@ import gentools
 import unittest
 
 
-class TestDefine(unittest.TestCase):
+class TestDefineBehaviour(unittest.TestCase):
     def test_first_class(self):
-        g = gentools.Define(_ for _ in range(5))
+        g = gentools.Define(i for _ in range(1)).where(i=5)
         self.assertTrue(isinstance(g, gentools.Define))
 
     def test_constants_exposition(self):
@@ -15,19 +15,19 @@ class TestDefine(unittest.TestCase):
 
     def test_next(self):
         """Test direct calls to next()"""
-        g = gentools.Define(_ for _ in range(5))
-        expected = [0, 1, 2]
+        g = gentools.Define(i for _ in range(3)).where(i=5)
+        expected = [5, 5, 5]
         obtained = [next(g), next(g), next(g)]
         self.assertEqual(expected, obtained)
 
     def test___iter__(self):
         """Check the __iter__ slot is defined to return self.generator"""
-        g = gentools.Define(_ for _ in range(5))
+        g = gentools.Define(i for _ in range(1)).where(i=5)
         self.assertIs(iter(g), g.generator)
 
     def test_generator_attributes(self):
         """Check that generator attributes are present"""
-        g = gentools.Define(_ for _ in range(5))
+        g = gentools.Define(i for _ in range(1)).where(i=5)
         attributes = dir(g)
         self.assertTrue('gi_frame' in attributes)
         self.assertTrue('gi_running' in attributes)
@@ -51,6 +51,19 @@ class TestDefine(unittest.TestCase):
         self.assertTrue(wr() is g)
         p = weakref.proxy(g)
         self.assertTrue(list(p), [0, 1, 4, 9])
+
+
+g_i = 50
+global_g = gentools.Define(g_i for _ in range(3)).where(g_i=5)
+
+
+class TestDefineMethods(unittest.TestCase):
+    def test_global_definition(self):
+        self.assertEqual([5, 5, 5], list(global_g))
+
+    def test_constant_global_exposition(self):
+        """Make sure the constants is not exposed in the global scope."""
+        self.assertEqual(g_i, 50)
 
     def test_where_method(self):
         a, b, c = 1, 2, 3
