@@ -21,9 +21,10 @@ def _replace_globals_and_closures(generator, **constants):
     new_consts = list(gi_code.co_consts)
     new_locals = generator.gi_frame.f_locals
     new_freevars = list(gi_code.co_freevars)
+    new_names = list(gi_code.co_names)
 
     i = 0
-    # through the list of op_codes
+    # through the list of opcodes
     while i < len(new_code):
         op_code = new_code[i]
         # Replace global lookups by the values defined in *constants*.
@@ -31,6 +32,9 @@ def _replace_globals_and_closures(generator, **constants):
             oparg = new_code[i + 1] + (new_code[i + 2] << 8)
             # the names of all global variables are stored
             # in the .co_names property
+
+            # can't use the new_name variable directly because if I clean the
+            # name i get an IndexError.
             name = gi_code.co_names[oparg]
             if name in constants:
                 value = constants[name]
@@ -43,6 +47,8 @@ def _replace_globals_and_closures(generator, **constants):
                 else:
                     pos = len(new_consts)
                     new_consts.append(value)
+                    # remove unnecessary names
+                    new_names.remove(name)
                 new_code[i] = OPMAP_LOAD_CONST
                 new_code[i + 1] = pos & 0xFF
                 new_code[i + 2] = pos >> 8
@@ -64,14 +70,15 @@ def _replace_globals_and_closures(generator, **constants):
                 else:
                     pos = len(new_consts)
                     new_consts.append(value)
+                    # !!!: the .co_locals and .co_freevars store the closures
+                    # names .I clear this names because if not the generator
+                    # can't compile.
+                    new_freevars.remove(name)
+                    if name in new_locals:
+                        del new_locals[name]
                 new_code[i] = OPMAP_LOAD_CONST
                 new_code[i + 1] = pos & 0xFF
                 new_code[i + 2] = pos >> 8
-            # !!!: the .co_locals and .co_freevars store the closures names
-            # I clear this names because if not the generator can't compile
-            if name in new_locals:
-                del new_locals[name]
-                new_freevars.remove(name)
         i += 1
         if op_code >= OPCODE_HAVE_ARGUMENT:
             i += 2
@@ -91,7 +98,7 @@ def _replace_globals_and_closures(generator, **constants):
         gi_code.co_flags,
         bytes(code_str, 'utf-8'),   # CUSTOM: co_code
         tuple(new_consts),          # CUSTOM: co_consts
-        gi_code.co_names,
+        tuple(new_names),           # CUSTOM: co_names
         gi_code.co_varnames,
         gi_code.co_filename,
         gi_code.co_name,
