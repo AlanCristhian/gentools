@@ -5,6 +5,12 @@ import types
 import opcode
 
 
+OPMAP_LOAD_GLOBAL = opcode.opmap['LOAD_GLOBAL']
+OPMAP_LOAD_DEREF = opcode.opmap['LOAD_DEREF']
+OPMAP_LOAD_CONST = opcode.opmap['LOAD_CONST']
+OPCODE_HAVE_ARGUMENT = opcode.HAVE_ARGUMENT
+
+
 def _replace_globals_and_closures(generator, **constants):
     """Replace globals variables and closures inside the generator
     by the values defined in constants."""
@@ -19,7 +25,7 @@ def _replace_globals_and_closures(generator, **constants):
     while i < len(new_code):
         op_code = new_code[i]
         # Replace global lookups by the values defined in *constants*.
-        if op_code == opcode.opmap['LOAD_GLOBAL']:
+        if op_code == OPMAP_LOAD_GLOBAL:
             oparg = new_code[i + 1] + (new_code[i + 2] << 8)
             # the names of all global variables are stored
             # in the .co_names property
@@ -35,13 +41,13 @@ def _replace_globals_and_closures(generator, **constants):
                 else:
                     pos = len(new_consts)
                     new_consts.append(value)
-                new_code[i] = opcode.opmap['LOAD_CONST']
+                new_code[i] = OPMAP_LOAD_CONST
                 new_code[i + 1] = pos & 0xFF
                 new_code[i + 2] = pos >> 8
 
         # Here repalce closures lookups by constants lookups with the values
         # defined in *constants*
-        if op_code == opcode.opmap['LOAD_DEREF']:
+        if op_code == OPMAP_LOAD_DEREF:
             oparg = new_code[i + 1] + (new_code[i + 2] << 8)
             # !!!: Now the name is sotred i the .co_freevars property
             name = new_freevars[oparg]
@@ -56,7 +62,7 @@ def _replace_globals_and_closures(generator, **constants):
                 else:
                     pos = len(new_consts)
                     new_consts.append(value)
-                new_code[i] = opcode.opmap['LOAD_CONST']
+                new_code[i] = OPMAP_LOAD_CONST
                 new_code[i + 1] = pos & 0xFF
                 new_code[i + 2] = pos >> 8
             # !!!: the .co_locals and .co_freevars store the closures names
@@ -65,7 +71,7 @@ def _replace_globals_and_closures(generator, **constants):
                 del locals[name]
                 new_freevars.remove(name)
         i += 1
-        if op_code >= opcode.HAVE_ARGUMENT:
+        if op_code >= OPCODE_HAVE_ARGUMENT:
             i += 2
 
     # make a string of op_codes
@@ -97,8 +103,7 @@ def _replace_globals_and_closures(generator, **constants):
     function = types.FunctionType(
         code_object,                    # CUSTOM: __code__
         generator.gi_frame.f_globals,   # CUSTOM: __globals__
-        generator.__name__,
-    )
+        generator.__name__,)
 
     # return the *generator object*
     return function(**locals)
