@@ -14,11 +14,11 @@ def _replace_globals_and_closures(generator, **constants):
     locals = generator.gi_frame.f_locals
     new_freevars = list(gi_code.co_freevars)
 
-    # Replace global lookups by the values defined in *constants*.
     i = 0
     # through the list of op_codes
     while i < len(new_code):
         op_code = new_code[i]
+        # Replace global lookups by the values defined in *constants*.
         if op_code == opcode.opmap['LOAD_GLOBAL']:
             oparg = new_code[i + 1] + (new_code[i + 2] << 8)
             # the names of all global variables are stored
@@ -38,16 +38,9 @@ def _replace_globals_and_closures(generator, **constants):
                 new_code[i] = opcode.opmap['LOAD_CONST']
                 new_code[i + 1] = pos & 0xFF
                 new_code[i + 2] = pos >> 8
-        i += 1
-        if op_code >= opcode.HAVE_ARGUMENT:
-            i += 2
 
-    # Here epalce closures lookups by constants lookups with the values
-    # defined in *constants*
-    i = 0
-    # through the list of op_codes again
-    while i < len(new_code):
-        op_code = new_code[i]
+        # Here repalce closures lookups by constants lookups with the values
+        # defined in *constants*
         if op_code == opcode.opmap['LOAD_DEREF']:
             oparg = new_code[i + 1] + (new_code[i + 2] << 8)
             # !!!: Now the name is sotred i the .co_freevars property
@@ -78,6 +71,9 @@ def _replace_globals_and_closures(generator, **constants):
     # make a string of op_codes
     code_str = ''.join(chr(op_code) for op_code in new_code)
 
+    # NOTE: the lines comented whit the *CUSTOM:* tag mean that such argument
+    # is a custom version of the original object
+
     # create a new *code object* (like generator.gi_code)
     code_object = types.CodeType(
         gi_code.co_argcount,
@@ -85,22 +81,22 @@ def _replace_globals_and_closures(generator, **constants):
         gi_code.co_nlocals,
         gi_code.co_stacksize,
         gi_code.co_flags,
-        bytes(code_str, 'utf-8'),
-        tuple(new_consts),
+        bytes(code_str, 'utf-8'),   # CUSTOM: co_code
+        tuple(new_consts),          # CUSTOM: co_consts
         gi_code.co_names,
         gi_code.co_varnames,
         gi_code.co_filename,
         gi_code.co_name,
         gi_code.co_firstlineno,
         gi_code.co_lnotab,
-        tuple(new_freevars),
+        tuple(new_freevars),        # CUSTOM: co_freevars
         gi_code.co_cellvars)
 
     # Make a *generator function*
     # NOTE: the *generator functon* make a *generator object* when is called
     function = types.FunctionType(
-        code_object,
-        generator.gi_frame.f_globals,
+        code_object,                    # CUSTOM: __code__
+        generator.gi_frame.f_globals,   # CUSTOM: __globals__
         generator.__name__,
     )
 
