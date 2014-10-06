@@ -1,8 +1,9 @@
 # gentools
 
-A collection of tools that extend the functionality of the *generator object*.
+A collection of experimental tools that extend the functionality of the
+*generator object*.
 
-### `inject_constants(generator, **constants) -> generator:`
+###### `inject_constants(generator, **constants) -> generator:`
 
 Return a copy of of the `generator` parameter. This copy have the constants
 defined in the `constants` map. If a key of `constants` share the same
@@ -29,13 +30,13 @@ not `2`.
 [0, 10, 20, 30]
 ```
 
-## More declarative generators
+## More declarative generators whit `Define` class
 
 The gentools.Define() class allow you write code in an more declarative way
 adding the where clause. This enforce the idea of don't tell the com-puter
 what to do, but tell it what is.
 
-### `Define.where()`
+###### `Define.where()`
 
 The `where()` method inject constants inside the generator. E.g:
 
