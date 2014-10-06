@@ -15,8 +15,11 @@ OPCODE_HAVE_ARGUMENT = opcode.HAVE_ARGUMENT
 
 
 def inject_constants(generator, **constants):
-    """Replace globals variables and closures inside the generator
-    by the values defined in constants."""
+    """Return a copy of of the `generator` parameter. This copy have
+    the constants defined in the `constants` map. If a key of
+    `constants` share the same name than a global object or have the
+    same name than a clojure, then replace such global or clojure by
+    the value defined in the `constants` argument."""
     # NOTE: all vars with the *new_* name prefix are custom versions of
     # the original attributes of the generator.
     gi_code = generator.gi_code
