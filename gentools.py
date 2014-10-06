@@ -5,13 +5,16 @@ import types
 import opcode
 
 
+__all__ = ["Define", "inject_constants"]
+
+
 OPMAP_LOAD_GLOBAL = opcode.opmap['LOAD_GLOBAL']
 OPMAP_LOAD_DEREF = opcode.opmap['LOAD_DEREF']
 OPMAP_LOAD_CONST = opcode.opmap['LOAD_CONST']
 OPCODE_HAVE_ARGUMENT = opcode.HAVE_ARGUMENT
 
 
-def _replace_globals_and_closures(generator, **constants):
+def inject_constants(generator, **constants):
     """Replace globals variables and closures inside the generator
     by the values defined in constants."""
     # NOTE: all vars with the *new_* name prefix are custom versions of
@@ -131,8 +134,7 @@ class Define:
     def where(self, **constants):
         """Inject the *constants* map as constants inside
         the generator object."""
-        self.generator = \
-            _replace_globals_and_closures(self.generator, **constants)
+        self.generator = inject_constants(self.generator, **constants)
         return self
 
     @property
