@@ -8,6 +8,7 @@ import opcode
 __all__ = ["Define", "inject_constants"]
 
 
+# cache all constants to improve the performance
 OPMAP_LOAD_GLOBAL = opcode.opmap['LOAD_GLOBAL']
 OPMAP_LOAD_DEREF = opcode.opmap['LOAD_DEREF']
 OPMAP_LOAD_CONST = opcode.opmap['LOAD_CONST']
@@ -17,9 +18,9 @@ OPCODE_HAVE_ARGUMENT = opcode.HAVE_ARGUMENT
 def inject_constants(generator, **constants):
     """Return a copy of of the `generator` parameter. This copy have
     the constants defined in the `constants` map. If a key of
-    `constants` share the same name than a global object or have the
-    same name than a clojure, then replace such global or clojure by
-    the value defined in the `constants` argument."""
+    `constants` share the same name than a global or local object,
+    then replace such global or local by the value defined in the
+    `constants` argument."""
     # NOTE: all vars with the *new_* name prefix are custom versions of
     # the original attributes of the generator.
     gi_code = generator.gi_code
@@ -30,14 +31,14 @@ def inject_constants(generator, **constants):
     new_names = list(gi_code.co_names)
 
     i = 0
-    # through the list of opcodes
+    # through the list of instructions
     while i < len(new_code):
         op_code = new_code[i]
         # Replace global lookups by the values defined in *constants*.
         if op_code == OPMAP_LOAD_GLOBAL:
             oparg = new_code[i + 1] + (new_code[i + 2] << 8)
             # the names of all global variables are stored
-            # in the .co_names property
+            # in generator.gi_code.co_names
 
             # can't use the new_name variable directly because if I clean the
             # name i get an IndexError.
@@ -59,11 +60,11 @@ def inject_constants(generator, **constants):
                 new_code[i + 1] = pos & 0xFF
                 new_code[i + 2] = pos >> 8
 
-        # Here repalce closures lookups by constants lookups with the values
+        # Here repalce locals lookups by constants lookups with the values
         # defined in *constants*
         if op_code == OPMAP_LOAD_DEREF:
             oparg = new_code[i + 1] + (new_code[i + 2] << 8)
-            # !!!: Now the name is sotred i the .co_freevars property
+            # !!!: Now the name is sotred in generator.gi_code.co_freevars
             name = new_freevars[oparg]
             if name in constants:
                 value = constants[name]
@@ -76,9 +77,10 @@ def inject_constants(generator, **constants):
                 else:
                     pos = len(new_consts)
                     new_consts.append(value)
-                    # !!!: the .co_locals and .co_freevars store the closures
-                    # names .I clear this names because if not the generator
-                    # can't compile.
+                    # !!!: generator.gi_code.co_locals and
+                    # generator.gi_code.co_freevars store the locals names.
+                    # I clear this names because if not the generator can't
+                    # compile.
                     new_freevars.remove(name)
                     if name in new_locals:
                         del new_locals[name]
@@ -89,7 +91,7 @@ def inject_constants(generator, **constants):
         if op_code >= OPCODE_HAVE_ARGUMENT:
             i += 2
 
-    # make a string of op_codes
+    # make a string of instructions
     code_str = ''.join(chr(op_code) for op_code in new_code)
 
     # NOTE: the lines comented whit the *CUSTOM:* tag mean that such argument
@@ -102,26 +104,26 @@ def inject_constants(generator, **constants):
         gi_code.co_nlocals,
         gi_code.co_stacksize,
         gi_code.co_flags,
-        bytes(code_str, 'utf-8'),   # CUSTOM: co_code
-        tuple(new_consts),          # CUSTOM: co_consts
-        tuple(new_names),           # CUSTOM: co_names
+        bytes(code_str, 'utf-8'),   # CUSTOM: generator.gi_code.co_code
+        tuple(new_consts),          # CUSTOM: generator.gi_code.co_consts
+        tuple(new_names),           # CUSTOM: generator.gi_code.co_names
         gi_code.co_varnames,
         gi_code.co_filename,
         gi_code.co_name,
         gi_code.co_firstlineno,
         gi_code.co_lnotab,
-        tuple(new_freevars),        # CUSTOM: co_freevars
+        tuple(new_freevars),        # CUSTOM: generator.gi_code.co_freevars
         gi_code.co_cellvars)
 
     # Make a *generator function*
     # NOTE: the *generator functon* make a *generator object* when is called
     function = types.FunctionType(
-        code_object,                    # CUSTOM: __code__
-        generator.gi_frame.f_globals,   # CUSTOM: __globals__
+        code_object,                    # CUSTOM: function.__code__
+        generator.gi_frame.f_globals,   # CUSTOM: function.__globals__
         generator.__name__,)
 
     # return the *generator object*
-    return function(**new_locals)       # CUSTOM: gi_frame.f_locals
+    return function(**new_locals)       # CUSTOM: generator.gi_frame.f_locals
 
 
 class Define:
