@@ -151,3 +151,27 @@ class Define:
 
     def __next__(self):
         return next(self.generator)
+
+
+def _argument_sender(Class):
+    while True:
+        value = (yield)
+        if isinstance(value, Class):
+            yield value
+        else:
+            raise TypeError("%s should be an instance of %s" % \
+                (value, Class.__name__))
+
+
+class MetaObject(type):
+    def __iter__(self):
+        yield self.arguments
+
+
+class Object(metaclass=MetaObject):
+    def __init__(self, generator=None):
+        self.arguments = _argument_sender(object)
+
+    def __call__(self, attr):
+        self.arguments.send(None)
+        return self.arguments.send(attr)

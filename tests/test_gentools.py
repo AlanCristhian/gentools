@@ -73,5 +73,17 @@ class TestDefineMethods(unittest.TestCase):
         self.assertEqual(expected, obtained)
 
 
+class TestObjectClass(unittest.TestCase):
+    def test__argument_sender_coroutine(self):
+        _argument_sender = gentools._argument_sender(object)
+        next(_argument_sender)
+        a = _argument_sender.send(1)
+        self.assertEqual(a, 1)
+
+    def test_Object(self):
+        function = gentools.Object(x for x in gentools.Object)
+        self.assertEqual(function(1), 1)
+
+
 if __name__ == '__main__':
     unittest.main()
