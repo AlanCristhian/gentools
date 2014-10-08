@@ -1,10 +1,55 @@
-# gentools
+# gentools (experimental)
 
 A collection of experimental tools that extend the functionality of the
 *generator object*.
 
+## Another way to define functions (only work with one argument, for now)
 
-###### gentools.inject_constants(generator, **constants)
+Whit `gentools` you can define functions that do *type checking* with yours
+arguments and your returned value. All those with an more expressive sintax.
+For example, supose that you want this mathematical fuction:
+
+   `ƒ: ℜ → ℜ = {2·x / x ∊ ℜ}`
+
+The above mathematical expression can be writed with the following notation in
+Python:
+
+```python
+from gentools import Real
+f = Real(2*x for x in Real)
+```
+
+You can see that the expression `f = Real(2*x for x in Real)` is very
+equvalent to `ƒ: ℜ → ℜ = {2·x / x ∊ ℜ}`.
+
+Also this functions do type checking:
+
+```python
+>>> from gentools import Real
+>>> f = Real(2*x for x in Real)
+>>> f(2)
+4
+>>> f('a')
+Traceback (most recent call last):
+...
+AssertionError: argument value must be a 'number.Real', not 'str'
+>>>
+```
+
+If you don't care about the type you can use the `Object` type. Is equivalent
+to tell "is type object", in Python 3 all is an object.
+
+```python
+>>> from gentools import Object
+>>> triple = Object(3*x for x in Object)
+>>> f(2)
+6
+>>> f('a')
+'aaa'
+>>>
+```
+
+##### gentools.inject_constants(generator, **constants)
 
 Return a copy of of the `generator` parameter. This copy have the constants
 defined in the `constants` map. If a key of `constants` share the same name
@@ -41,7 +86,7 @@ adding the where clause. This enforce the idea of don't tell the computer
 what to do, but tell it what is.
 
 
-###### gentools.Define.where()
+##### gentools.Define.where()
 
 The `where()` method inject constants inside the generator. E.g:
 
