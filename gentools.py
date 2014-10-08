@@ -5,6 +5,7 @@ import types
 import opcode
 import itertools
 from collections import deque
+import numbers
 
 
 __all__ = ["inject_constants", "Define", "Function", "new_type", "Object",
@@ -231,3 +232,4 @@ def new_type(name, base):
 
 Object = new_type('Object', object)
 Float = new_type('Float', float)
+Real = new_type('Real', numbers.Real)
