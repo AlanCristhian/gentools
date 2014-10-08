@@ -3,9 +3,12 @@ the *generator object*."""
 
 import types
 import opcode
+import itertools
+from collections import deque
 
 
-__all__ = ["Define", "inject_constants"]
+__all__ = ["inject_constants", "Define", "Function", "new_type", "Object",
+    "Float"]
 
 
 # cache all constants to improve the performance
@@ -154,24 +157,58 @@ class Define:
 
 
 def _argument_sender(Class):
+    """A *coroutine function* that recceive a value. Yield the value
+    if is an instance of *Class* arguent. Raise a TypeError if not."""
+    value = None
     while True:
-        value = (yield)
-        if isinstance(value, Class):
-            yield value
-        else:
-            raise TypeError("%s should be an instance of %s" % \
-                (value, Class.__name__))
+        value = yield value
+        assert isinstance(value, Class), \
+            "argument value must be a '%s', not '%s'" % \
+            (Class.__name__, value.__class__.__name__)
+        yield value
 
 
-class MetaObject(type):
-    def __iter__(self):
-        yield self.arguments
+class Function:
+    """A type of callable object that can be defined with
+    an generator."""
+    def __init__(self, base, generator):
+        self.generator = generator
+        self.base = base
+        self.call = self.generator.gi_frame.f_locals['.0'].send
+
+    def __call__(self, arg):
+        """Execute the function."""
+        self.call(arg)
+        result = next(self.generator)
+        assert isinstance(result, self.base), \
+            "returned value must be a '%s', not '%s'" % \
+            (self.base.__name__, result.__class__.__name__)
+        return result
 
 
-class Object(metaclass=MetaObject):
-    def __init__(self, generator=None):
-        self.arguments = _argument_sender(object)
+class _MetaType(type):
+    """Make a iterable type that ensure that the value sended
+    is an instance of the first element of bases argument."""
+    def __init__(cls, name, bases, namespace):
+        cls.base_type = bases[0]
+        return type.__init__(cls, name, bases[1:], namespace)
 
-    def __call__(self, attr):
-        self.arguments.send(None)
-        return self.arguments.send(attr)
+    def __iter__(cls):
+        argument = _argument_sender(cls.base_type)
+        # initialize the *coroutine object*
+        next(argument)
+        return argument
+
+    def __call__(cls, *args, **kwds):
+        """Create an instance of the Function class."""
+        return Function(cls.base_type, *args, **kwds)
+
+
+def new_type(name, base):
+    """Create a new Iterable type that make a Function
+    instance if is called."""
+    return _MetaType(name, (base,), {})
+
+
+Object = new_type('Object', object)
+Float = new_type('Float', float)
