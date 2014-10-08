@@ -75,7 +75,7 @@ class TestDefineMethods(unittest.TestCase):
 
 class TestObjectClass(unittest.TestCase):
     def test__argument_sender_coroutine(self):
-        _argument_sender = gentools._argument_sender(object)
+        _argument_sender = gentools._argument_sender()
         next(_argument_sender)
         a = _argument_sender.send(1)
         self.assertEqual(a, 1)
@@ -87,16 +87,20 @@ class TestObjectClass(unittest.TestCase):
 
 class TestFloat(unittest.TestCase):
     def test_Float_arguments(self):
-        function = gentools.Float(3.5 for x in gentools.Float)
+        function = gentools.Float(2*x for x in gentools.Float)
         pattern = "argument value must be a '\w+', not '\w+'"
         with self.assertRaisesRegex(AssertionError, pattern):
             function('a')
+        # ensure that function still work
+        self.assertAlmostEqual(function(2.0), 4.0)
 
     def test_Float_result(self):
-        function = gentools.Float('x' for x in gentools.Float)
+        function = gentools.Float('x' if x < 2 else x*2 for x in gentools.Float)
         pattern = "returned value must be a '\w+', not '\w+'"
         with self.assertRaisesRegex(AssertionError, pattern):
-            function(3.5)
+            function(1.0)
+        # ensure that function still work
+        self.assertAlmostEqual(function(3.0), 3.0*2)
 
 
 if __name__ == '__main__':
