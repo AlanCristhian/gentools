@@ -156,15 +156,12 @@ class Define:
         return next(self.generator)
 
 
-def _argument_sender(Class):
+def _argument_sender():
     """A *coroutine function* that recceive a value. Yield the value
     if is an instance of *Class* arguent. Raise a TypeError if not."""
     value = None
     while True:
         value = yield value
-        assert isinstance(value, Class), \
-            "argument value must be a '%s', not '%s'" % \
-            (Class.__name__, value.__class__.__name__)
         yield value
 
 
@@ -175,15 +172,37 @@ class Function:
         self.generator = generator
         self.base = base
         self.call = self.generator.gi_frame.f_locals['.0'].send
+        self.argument_class = self.generator.gi_frame.f_locals['.0']._class
 
     def __call__(self, arg):
         """Execute the function."""
+        assert isinstance(arg, self.argument_class), \
+            "argument value must be a '%s', not '%s'" % \
+            (self.argument_class.__name__, arg.__class__.__name__)
         self.call(arg)
         result = next(self.generator)
         assert isinstance(result, self.base), \
             "returned value must be a '%s', not '%s'" % \
             (self.base.__name__, result.__class__.__name__)
         return result
+
+
+class _AddClassPropery:
+    """Add the _class property to a generator"""
+    def __init__(self, base, generator):
+        self.generator = generator
+        self.send = self.generator.send
+        self._class = base
+
+    @property
+    def gi_running(self):
+        return self.generator.gi_running
+
+    def __iter__(self):
+        return self.generator
+
+    def __next__(self):
+        return next(self.generator)
 
 
 class _MetaType(type):
@@ -194,10 +213,10 @@ class _MetaType(type):
         return type.__init__(cls, name, bases[1:], namespace)
 
     def __iter__(cls):
-        argument = _argument_sender(cls.base_type)
-        # initialize the *coroutine object*
-        next(argument)
-        return argument
+        coroutine = _argument_sender()
+        iterable = _AddClassPropery(cls.base_type, coroutine)
+        next(iterable)
+        return iterable
 
     def __call__(cls, *args, **kwds):
         """Create an instance of the Function class."""
