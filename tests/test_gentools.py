@@ -81,8 +81,22 @@ class TestObjectClass(unittest.TestCase):
         self.assertEqual(a, 1)
 
     def test_Object(self):
-        function = gentools.Object(x for x in gentools.Object)
-        self.assertEqual(function(1), 1)
+        function = gentools.Object(2*x for x in gentools.Object)
+        self.assertEqual(function(1), 2)
+
+
+class TestFloat(unittest.TestCase):
+    def test_Float_arguments(self):
+        function = gentools.Float(3.5 for x in gentools.Float)
+        pattern = "argument value must be a '\w+', not '\w+'"
+        with self.assertRaisesRegex(AssertionError, pattern):
+            function('a')
+
+    def test_Float_result(self):
+        function = gentools.Float('x' for x in gentools.Float)
+        pattern = "returned value must be a '\w+', not '\w+'"
+        with self.assertRaisesRegex(AssertionError, pattern):
+            function(3.5)
 
 
 if __name__ == '__main__':
