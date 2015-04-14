@@ -95,9 +95,6 @@ def inject_constants(generator, **constants):
         if op_code >= OPCODE_HAVE_ARGUMENT:
             i += 2
 
-    # make a string of instructions
-    code_str = ''.join(chr(op_code) for op_code in new_code)
-
     # NOTE: the lines comented whit the *CUSTOM:* tag mean that such argument
     # is a custom version of the original object
 
@@ -108,7 +105,7 @@ def inject_constants(generator, **constants):
         gi_code.co_nlocals,
         gi_code.co_stacksize,
         gi_code.co_flags,
-        bytes(code_str, 'utf-8'),   # CUSTOM: generator.gi_code.co_code
+        bytes(new_code),            # CUSTOM: generator.gi_code.co_code
         tuple(new_consts),          # CUSTOM: generator.gi_code.co_consts
         tuple(new_names),           # CUSTOM: generator.gi_code.co_names
         gi_code.co_varnames,
@@ -232,4 +229,5 @@ def new_type(name, base):
 
 Object = new_type('Object', object)
 Float = new_type('Float', float)
-Real = new_type('Real', numbers.Real)
+# FIXME:
+# Real = new_type('Real', numbers.Real)
